@@ -1,0 +1,532 @@
+{
+  "info": {
+    "_postman_id": "7f8b9a2c-4e12-4f81-9b16-56832dbef101",
+    "name": "Healthcare Backend API - WhatBytes Assignment",
+    "description": "Production-ready Postman collection for the Healthcare Django REST Framework Backend. Includes JWT authentication, automated token extraction, and full CRUD workflows for Patients, Doctors, and Mappings.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sample_patient_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "sample_doctor_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "sample_mapping_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Register New User",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Jane Foster\",\n  \"email\": \"jane.foster@healthcare.test\",\n  \"password\": \"FosterPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register", ""]
+            },
+            "description": "Register a new user with name, email, and password."
+          },
+          "response": []
+        },
+        {
+          "name": "Login User (Auto-stores JWT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.tokens) {",
+                  "        pm.collectionVariables.set('jwt_token', json.data.tokens.access);",
+                  "        pm.collectionVariables.set('refresh_token', json.data.tokens.refresh);",
+                  "        console.log('JWT Access Token saved to collection variable!');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"doctor.demo@healthcare.com\",\n  \"password\": \"DoctorPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login", ""]
+            },
+            "description": "Log in an existing user and automatically store access/refresh tokens in collection variables."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.access) {",
+                  "        pm.collectionVariables.set('jwt_token', json.access);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/token/refresh/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "token", "refresh", ""]
+            },
+            "description": "Refresh an expired access token using the refresh token."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Authenticated User Profile",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/auth/me/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me", ""]
+            },
+            "description": "Retrieve currently authenticated user's profile details."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Patients",
+      "item": [
+        {
+          "name": "Add New Patient",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('sample_patient_id', json.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jonathan Crane\",\n  \"age\": 42,\n  \"gender\": \"Male\",\n  \"contact_number\": \"+1-555-4321\",\n  \"email\": \"crane@arkham.test\",\n  \"address\": \"128 Arkham Way\",\n  \"medical_history\": \"Severe panic disorder and occupational toxic exposure.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/patients/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patients", ""]
+            },
+            "description": "Create a new patient record (associated with authenticated user)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Patients Created By User",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/patients/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patients", ""]
+            },
+            "description": "Retrieve all patients created by the authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Patient by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/patients/{{sample_patient_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patients", "{{sample_patient_id}}", ""]
+            },
+            "description": "Retrieve details of a specific patient record."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Patient Details (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jonathan Crane Ph.D.\",\n  \"age\": 43,\n  \"gender\": \"Male\",\n  \"contact_number\": \"+1-555-9876\",\n  \"email\": \"crane.phd@arkham.test\",\n  \"address\": \"130 Arkham Way, Suite 4\",\n  \"medical_history\": \"Condition stabilized under continuous behavioral therapy.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/patients/{{sample_patient_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patients", "{{sample_patient_id}}", ""]
+            },
+            "description": "Full update of a patient record."
+          },
+          "response": []
+        },
+        {
+          "name": "Partial Update Patient (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medical_history\": \"Updated: Prescribed daily neuro-stabilizers.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/patients/{{sample_patient_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patients", "{{sample_patient_id}}", ""]
+            },
+            "description": "Partially update specific fields of a patient record."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Patient Record",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/patients/{{sample_patient_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patients", "{{sample_patient_id}}", ""]
+            },
+            "description": "Delete a patient record owned by the authenticated user."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Doctors",
+      "item": [
+        {
+          "name": "Add New Doctor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('sample_doctor_id', json.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Hannibal Lecter\",\n  \"specialization\": \"Forensic Psychiatry\",\n  \"license_number\": \"MD-PSYCH-888\",\n  \"contact_number\": \"+1-555-7777\",\n  \"email\": \"dr.lecter@baltimore.test\",\n  \"years_of_experience\": 25,\n  \"hospital_affiliation\": \"Baltimore State Hospital\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/doctors/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "doctors", ""]
+            },
+            "description": "Add a new doctor to the healthcare directory."
+          },
+          "response": []
+        },
+        {
+          "name": "Retrieve All Doctors",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/doctors/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "doctors", ""]
+            },
+            "description": "Retrieve all registered doctors."
+          },
+          "response": []
+        },
+        {
+          "name": "Search Doctors by Name",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/doctors/?search=House",
+              "host": ["{{base_url}}"],
+              "path": ["api", "doctors", ""],
+              "query": [
+                { "key": "search", "value": "House" }
+              ]
+            },
+            "description": "Search doctors by full or partial name or specialty."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter Doctors by Specialization",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/doctors/?specialization=Neurosurgery",
+              "host": ["{{base_url}}"],
+              "path": ["api", "doctors", ""],
+              "query": [
+                { "key": "specialization", "value": "Neurosurgery" }
+              ]
+            },
+            "description": "Filter doctor directory by medical specialty."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Doctor by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/doctors/{{sample_doctor_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "doctors", "{{sample_doctor_id}}", ""]
+            },
+            "description": "Retrieve full profile of a specific doctor."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Doctor Details (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Hannibal Lecter M.D.\",\n  \"specialization\": \"Clinical & Forensic Psychiatry\",\n  \"license_number\": \"MD-PSYCH-888\",\n  \"contact_number\": \"+1-555-7777\",\n  \"email\": \"dr.lecter@baltimore.test\",\n  \"years_of_experience\": 26,\n  \"hospital_affiliation\": \"Baltimore State Forensic Institute\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/doctors/{{sample_doctor_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "doctors", "{{sample_doctor_id}}", ""]
+            },
+            "description": "Update doctor details."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Doctor Record",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/doctors/{{sample_doctor_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "doctors", "{{sample_doctor_id}}", ""]
+            },
+            "description": "Delete a doctor profile from the system."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Patient-Doctor Mappings",
+      "item": [
+        {
+          "name": "Assign Doctor to Patient",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('sample_mapping_id', json.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": 2,\n  \"doctor_id\": 3,\n  \"notes\": \"Referred for spinal orthopedic assessment and neurological reflex examination.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/mappings/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "mappings", ""]
+            },
+            "description": "Assign a doctor to a patient owned by the authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "Retrieve All Patient-Doctor Mappings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/mappings/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "mappings", ""]
+            },
+            "description": "Retrieve all doctor-patient mappings associated with the current user's patients."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Doctors Assigned to Specific Patient",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/mappings/1/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "mappings", "1", ""]
+            },
+            "description": "Get all doctors assigned to patient with ID 1."
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Doctor from Patient (Delete Mapping)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/mappings/{{sample_mapping_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "mappings", "{{sample_mapping_id}}", ""]
+            },
+            "description": "Remove a doctor from a patient by deleting the mapping ID."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Discovery & Documentation",
+      "item": [
+        {
+          "name": "API Health & Sitemap",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/",
+              "host": ["{{base_url}}"],
+              "path": ["api", ""]
+            },
+            "description": "Root endpoint for service discovery and health check."
+          },
+          "response": []
+        },
+        {
+          "name": "OpenAPI 3.0 Schema",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/schema/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "schema", ""]
+            },
+            "description": "Download OpenAPI 3.0 YAML/JSON specification."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
