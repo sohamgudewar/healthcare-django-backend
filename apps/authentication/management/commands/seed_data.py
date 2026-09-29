@@ -6,36 +6,75 @@ from apps.mappings.models import PatientDoctorMapping
 
 
 class Command(BaseCommand):
-    help = 'Populates the database with realistic sample users, doctors, patients, and mappings.'
+    help = 'Populates the database with realistic credentials for every role, plus doctors, patients, and mappings.'
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.WARNING('Seeding initial healthcare dataset...'))
 
-        # 1. Create Demo Admin User
+        # =========================================================================
+        # 1. Role Credentials (One for Every Role)
+        # =========================================================================
+
+        # Role 1: Admin / Superuser
         admin_email = 'admin@healthcare.com'
-        if not User.objects.filter(email=admin_email).exists():
-            admin_user = User.objects.create_superuser(
-                email=admin_email,
-                name='Healthcare Administrator',
-                password='AdminPass123!',
-            )
-            self.stdout.write(self.style.SUCCESS(f'Created Admin: {admin_user.email} (Password: AdminPass123!)'))
-        else:
-            admin_user = User.objects.get(email=admin_email)
+        admin_user, _ = User.objects.get_or_create(
+            email=admin_email,
+            defaults={'name': 'Healthcare Administrator', 'role': User.ROLE_ADMIN, 'is_staff': True, 'is_superuser': True},
+        )
+        admin_user.role = User.ROLE_ADMIN
+        admin_user.is_staff = True
+        admin_user.is_superuser = True
+        admin_user.set_password('AdminPass123!')
+        admin_user.save()
+        self.stdout.write(self.style.SUCCESS(f'[Role: Admin] {admin_user.email} (Password: AdminPass123!)'))
 
-        # 2. Create Demo Doctor User
-        user_email = 'doctor.demo@healthcare.com'
-        if not User.objects.filter(email=user_email).exists():
-            demo_user = User.objects.create_user(
-                email=user_email,
-                name='Dr. Demo Clinician',
-                password='DoctorPass123!',
-            )
-            self.stdout.write(self.style.SUCCESS(f'Created Clinician User: {demo_user.email} (Password: DoctorPass123!)'))
-        else:
-            demo_user = User.objects.get(email=user_email)
+        # Role 2: Doctor / Clinician
+        doctor_email = 'doctor@healthcare.com'
+        doctor_user, _ = User.objects.get_or_create(
+            email=doctor_email,
+            defaults={'name': 'Dr. Sarah Mitchell', 'role': User.ROLE_DOCTOR},
+        )
+        doctor_user.role = User.ROLE_DOCTOR
+        doctor_user.set_password('DoctorPass123!')
+        doctor_user.save()
+        self.stdout.write(self.style.SUCCESS(f'[Role: Doctor] {doctor_user.email} (Password: DoctorPass123!)'))
 
-        # 3. Create Doctors
+        # Postman demo compatibility
+        demo_email = 'doctor.demo@healthcare.com'
+        demo_user, _ = User.objects.get_or_create(
+            email=demo_email,
+            defaults={'name': 'Dr. Demo Clinician', 'role': User.ROLE_DOCTOR},
+        )
+        demo_user.role = User.ROLE_DOCTOR
+        demo_user.set_password('DoctorPass123!')
+        demo_user.save()
+
+        # Role 3: Patient User
+        patient_email = 'patient@healthcare.com'
+        patient_user, _ = User.objects.get_or_create(
+            email=patient_email,
+            defaults={'name': 'John Smith (Patient)', 'role': User.ROLE_PATIENT},
+        )
+        patient_user.role = User.ROLE_PATIENT
+        patient_user.set_password('PatientPass123!')
+        patient_user.save()
+        self.stdout.write(self.style.SUCCESS(f'[Role: Patient] {patient_user.email} (Password: PatientPass123!)'))
+
+        # Role 4: Hospital Staff / Receptionist
+        staff_email = 'staff@healthcare.com'
+        staff_user, _ = User.objects.get_or_create(
+            email=staff_email,
+            defaults={'name': 'Emma Watson (Front Desk Staff)', 'role': User.ROLE_STAFF, 'is_staff': True},
+        )
+        staff_user.role = User.ROLE_STAFF
+        staff_user.is_staff = True
+        staff_user.set_password('StaffPass123!')
+        staff_user.save()
+        self.stdout.write(self.style.SUCCESS(f'[Role: Staff] {staff_user.email} (Password: StaffPass123!)'))
+
+        # =========================================================================
+        # 2. Doctors Directory
+        # =========================================================================
         doctors_data = [
             {
                 'name': 'Dr. Gregory House',
@@ -85,17 +124,12 @@ class Command(BaseCommand):
             if created:
                 self.stdout.write(self.style.SUCCESS(f'Created Doctor: {doctor.name} - {doctor.specialization}'))
 
-        # 4. Create Patients owned by demo_user
-        patients_data = [
-            {
-                'name': 'John Smith',
-                'age': 45,
-                'gender': 'Male',
-                'contact_number': '+1-555-0201',
-                'email': 'john.smith@example.com',
-                'address': '742 Evergreen Terrace, Springfield',
-                'medical_history': 'Hypertension diagnosed in 2021. Occasional migraines.',
-            },
+        # =========================================================================
+        # 3. Patient Records by Roles
+        # =========================================================================
+
+        # Records owned by Clinicians
+        clinician_patients_data = [
             {
                 'name': 'Sarah Connor',
                 'age': 34,
@@ -116,25 +150,62 @@ class Command(BaseCommand):
             },
         ]
 
-        patients = []
-        for p_info in patients_data:
-            patient, created = Patient.objects.get_or_create(
-                name=p_info['name'],
-                created_by=demo_user,
-                defaults=p_info,
-            )
-            patients.append(patient)
-            if created:
-                self.stdout.write(self.style.SUCCESS(f'Created Patient: {patient.name} (Owned by: {demo_user.email})'))
+        clinician_patients = []
+        for user_acc in [demo_user, doctor_user]:
+            for p_info in clinician_patients_data:
+                patient, created = Patient.objects.get_or_create(
+                    name=p_info['name'],
+                    created_by=user_acc,
+                    defaults=p_info,
+                )
+                if user_acc == doctor_user:
+                    clinician_patients.append(patient)
+                if created:
+                    self.stdout.write(self.style.SUCCESS(f'Created Patient: {patient.name} (Owned by: {user_acc.email})'))
 
-        # 5. Create Sample Mappings
-        sample_mappings = [
-            (patients[0], doctors[0], 'Complex diagnostic review for chronic migraines.'),
-            (patients[0], doctors[2], 'Neurosurgery consultation for spinal nerve assessment.'),
-            (patients[1], doctors[1], 'Post-orthopedic surgery general physical assessment.'),
+        # Record owned by Patient Account (Self Record)
+        patient_self_record, p_created = Patient.objects.get_or_create(
+            email='patient@healthcare.com',
+            created_by=patient_user,
+            defaults={
+                'name': 'John Smith',
+                'age': 45,
+                'gender': 'Male',
+                'contact_number': '+1-555-0201',
+                'address': '742 Evergreen Terrace, Springfield',
+                'medical_history': 'Hypertension diagnosed in 2021. Occasional migraines.',
+            },
+        )
+        if p_created:
+            self.stdout.write(self.style.SUCCESS(f'Created Patient: {patient_self_record.name} (Owned by: {patient_user.email})'))
+
+        # Record owned by Hospital Staff Account
+        staff_patient_record, s_created = Patient.objects.get_or_create(
+            email='clara.oswald@example.com',
+            created_by=staff_user,
+            defaults={
+                'name': 'Clara Oswald',
+                'age': 28,
+                'gender': 'Female',
+                'contact_number': '+1-555-0204',
+                'address': '221B Baker Street, London',
+                'medical_history': 'Routine annual preventive health assessment.',
+            },
+        )
+        if s_created:
+            self.stdout.write(self.style.SUCCESS(f'Created Patient: {staff_patient_record.name} (Owned by: {staff_user.email})'))
+
+        # =========================================================================
+        # 4. Patient-Doctor Mappings
+        # =========================================================================
+        mappings_data = [
+            (patient_self_record, doctors[0], 'Complex diagnostic review for chronic migraines.'),
+            (patient_self_record, doctors[2], 'Neurosurgery consultation for spinal nerve assessment.'),
+            (clinician_patients[0] if clinician_patients else patient_self_record, doctors[1], 'Post-orthopedic surgery general physical assessment.'),
+            (staff_patient_record, doctors[3], 'Pediatric and family health consultation.'),
         ]
 
-        for pat, doc, notes in sample_mappings:
+        for pat, doc, notes in mappings_data:
             mapping, created = PatientDoctorMapping.objects.get_or_create(
                 patient=pat,
                 doctor=doc,
@@ -143,4 +214,4 @@ class Command(BaseCommand):
             if created:
                 self.stdout.write(self.style.SUCCESS(f'Mapped: Patient [{pat.name}] -> Doctor [{doc.name}]'))
 
-        self.stdout.write(self.style.SUCCESS('\nSample healthcare data seeding completed successfully!'))
+        self.stdout.write(self.style.SUCCESS('\nSample healthcare data seeding completed successfully with all role credentials!'))

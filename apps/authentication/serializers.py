@@ -8,7 +8,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'name', 'email', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'email', 'role', 'is_staff', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
@@ -32,10 +32,16 @@ class RegisterSerializer(serializers.ModelSerializer):
         max_length=255,
         help_text='Full name of the user.',
     )
+    role = serializers.ChoiceField(
+        choices=User.ROLE_CHOICES,
+        default=User.ROLE_PATIENT,
+        required=False,
+        help_text='User role (admin, doctor, patient, staff). Defaults to patient.',
+    )
 
     class Meta:
         model = User
-        fields = ['id', 'name', 'email', 'password', 'created_at']
+        fields = ['id', 'name', 'email', 'password', 'role', 'created_at']
         read_only_fields = ['id', 'created_at']
 
     def validate_email(self, value):
@@ -51,10 +57,14 @@ class RegisterSerializer(serializers.ModelSerializer):
         return trimmed_name
 
     def create(self, validated_data):
+        role = validated_data.get('role', User.ROLE_PATIENT)
+        is_staff = role in [User.ROLE_ADMIN, User.ROLE_STAFF]
         user = User.objects.create_user(
             email=validated_data['email'],
             name=validated_data['name'],
             password=validated_data['password'],
+            role=role,
+            is_staff=is_staff,
         )
         return user
 

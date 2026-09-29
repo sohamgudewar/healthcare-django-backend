@@ -34,10 +34,14 @@ python manage.py runserver
 
 Created automatically when running `seed_data`:
 
-| Role | Email | Password |
-| :--- | :--- | :--- |
-| **Clinician User** | `doctor.demo@healthcare.com` | `DoctorPass123!` |
-| **Admin User** | `admin@healthcare.com` | `AdminPass123!` |
+| Role | Email | Password | Description |
+| :--- | :--- | :--- | :--- |
+| **Admin** | `admin@healthcare.com` | `AdminPass123!` | System administrator with full access and Django Admin |
+| **Doctor** | `doctor@healthcare.com` | `DoctorPass123!` | Medical clinician managing patients & consultations |
+| **Patient** | `patient@healthcare.com` | `PatientPass123!` | Healthcare patient accessing personal medical records |
+| **Staff** | `staff@healthcare.com` | `StaffPass123!` | Hospital receptionist managing patient intake & mappings |
+
+> *Note: `doctor.demo@healthcare.com` (`DoctorPass123!`) is also seeded for direct compatibility with the included Postman collection.*
 
 ---
 

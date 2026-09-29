@@ -16,6 +16,7 @@ class CustomUserManager(BaseUserManager):
             raise ValueError('The Name field must be set')
 
         email = self.normalize_email(email)
+        extra_fields.setdefault('role', 'patient')
         user = self.model(email=email, name=name, **extra_fields)
         if password:
             user.set_password(password)
@@ -28,6 +29,7 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
+        extra_fields.setdefault('role', 'admin')
 
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
@@ -40,6 +42,18 @@ class CustomUserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     """Custom User model representing healthcare system users."""
 
+    ROLE_ADMIN = 'admin'
+    ROLE_DOCTOR = 'doctor'
+    ROLE_PATIENT = 'patient'
+    ROLE_STAFF = 'staff'
+
+    ROLE_CHOICES = [
+        (ROLE_ADMIN, 'Admin'),
+        (ROLE_DOCTOR, 'Doctor'),
+        (ROLE_PATIENT, 'Patient'),
+        (ROLE_STAFF, 'Staff'),
+    ]
+
     email = models.EmailField(
         unique=True,
         max_length=255,
@@ -49,6 +63,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(
         max_length=255,
         help_text='Full name of the user.',
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default=ROLE_PATIENT,
+        help_text='System role of the user (admin, doctor, patient, staff).',
     )
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
