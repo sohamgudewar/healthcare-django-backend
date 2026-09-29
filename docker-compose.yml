@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:16-alpine
@@ -33,7 +31,7 @@ services:
       - "8000:8000"
     environment:
       - DEBUG=True
-      - SECRET_KEY=django-insecure-healthcare-secret-key-change-in-production-!@#$
+      - SECRET_KEY=django-insecure-healthcare-secret-key-for-local-docker
       - ALLOWED_HOSTS=*
       - DB_ENGINE=postgresql
       - DB_NAME=healthcare_db
